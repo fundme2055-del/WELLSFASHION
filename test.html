@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Clothify — Demo Store</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --maxw:1100px;
+      --accent:#1f7a8c;
+      --muted:#666;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:0;color:#111}
+    header{background:#fff;border-bottom:1px solid #eee}
+    .wrap{max-width:var(--maxw);margin:0 auto;padding:20px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .brand{font-weight:700;font-size:18px;color:var(--accent)}
+    .search{flex:1;margin:0 20px}
+    .search input{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px}
+    .cart-btn{position:relative}
+    .cart-count{position:absolute;right:-8px;top:-8px;background:var(--accent);color:#fff;border-radius:50%;font-size:12px;padding:4px 7px}
+    main{max-width:var(--maxw);margin:28px auto;padding:0 20px}
+    .hero{display:flex;gap:20px;align-items:center;justify-content:space-between;padding:28px;border-radius:12px;background:linear-gradient(90deg,#f7f9fa,#fff)}
+    .hero h1{margin:0;font-size:28px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;margin-top:20px}
+    .card{border:1px solid #eee;border-radius:10px;overflow:hidden;background:#fff}
+    .card img{width:100%;height:260px;object-fit:cover;display:block}
+    .card .meta{padding:12px}
+    .card .title{font-weight:600;margin-bottom:6px}
+    .card .price{color:var(--accent);font-weight:600}
+    .actions{display:flex;gap:8px;margin-top:10px}
+    .btn{padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
+    .btn.primary{background:var(--accent);color:#fff}
+    .btn.ghost{background:#f3f4f5}
+    /* cart drawer */
+    .cart-drawer{position:fixed;right:0;top:0;height:100%;width:360px;background:#fff;border-left:1px solid #eee;box-shadow:-12px 0 30px rgba(0,0,0,.06);transform:translateX(110%);transition:transform .25s ease;z-index:50;padding:20px;display:flex;flex-direction:column}
+    .cart-drawer.open{transform:translateX(0)}
+    .cart-items{flex:1;overflow:auto;margin-top:10px}
+    .cart-item{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px dashed #eee}
+    .cart-item img{width:64px;height:64px;object-fit:cover;border-radius:6px}
+    .cart-summary{padding-top:12px;border-top:1px solid #eee;margin-top:10px}
+    /* modal */
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:60}
+    .modal-bg.open{display:flex}
+    .modal{background:#fff;width:720px;max-width:96%;border-radius:10px;overflow:hidden}
+    .modal .gallery{width:50%;height:420px;float:left}
+    .modal img{width:100%;height:100%;object-fit:cover}
+    .modal .info{padding:18px;width:50%;float:right}
+    @media(max-width:720px){.hero{flex-direction:column;align-items:flex-start}.modal{flex-direction:column}.modal .gallery,.modal .info{width:100%;float:none;height:280px}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap top">
+      <div class="brand">Clothify</div>
+      <div class="search"><input id="searchInput" placeholder="Search shirts, jackets, jeans..." /></div>
+      <div>
+        <button class="btn ghost">Sign in</button>
+        <button class="btn cart-btn" id="openCartBtn">Cart<span class="cart-count" id="cartCount">0</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap hero">
+      <div>
+        <h1>Seasonal drops — essentials you'll reach for every day.</h1>
+        <p style="color:var(--muted);margin-top:8px">Free shipping over $75 • Easy returns</p>
+      </div>
+      <div><img src="https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=600&auto=format&fit=crop&ixlib=rb-4.0.3&s=1c9b3f3c9e2d3fb2a4f9b9eab02a7c02" alt="hero" style="width:260px;height:160px;object-fit:cover;border-radius:10px"></div>
+    </div>
+
+    <section class="wrap">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 style="margin:12px 0">All Products</h2>
+        <div style="color:var(--muted)">Showing <span id="shownCount">0</span> items</div>
+      </div>
+
+      <div class="grid" id="productGrid"></div>
+    </section>
+  </main>
+
+  <!-- cart drawer -->
+  <aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>Cart</h3>
+      <button class="btn" id="closeCartBtn">Close</button>
+    </div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-summary">
+      <div style="display:flex;justify-content:space-between"><strong>Subtotal</strong><strong id="subtotal">$0.00</strong></div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn primary" id="checkoutBtn">Checkout</button>
+        <button class="btn ghost" id="clearCartBtn">Clear</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- quick view modal -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="gallery" id="modalImgWrap"><img src="" alt=""></div>
+      <div class="info">
+        <h3 id="modalTitle"></h3>
+        <p id="modalPrice" style="color:var(--accent);font-weight:700;margin-top:6px"></p>
+        <p id="modalDesc" style="color:var(--muted);margin-top:10px"></p>
+        <div style="margin-top:12px">
+          <label>Size</label>
+          <select id="sizeSelect" style="padding:8px;margin-left:8px;border-radius:6px">
+            <option>S</option><option>M</option><option>L</option><option>XL</option>
+          </select>
+        </div>
+        <div style="margin-top:12px" class="actions">
+          <button class="btn primary" id="addToCartModal">Add to cart</button>
+          <button class="btn ghost" id="closeModal">Close</button>
+        </div>
+      </div>
+      <div style="clear:both"></div>
+    </div>
+  </div>
+
+  <script>
+    // demo products (replace with your own)
+    const PRODUCTS = [
+      { id: 'p1', title:'Classic Tee', price:29.00, img:'https://images.unsplash.com/photo-1520975698511-1f5b3d3b6d3f?q=80&w=800&auto=format&fit=crop'},
+      { id: 'p2', title:'Striped Shirt', price:45.00, img:'https://images.unsplash.com/photo-1519744792095-2f2205e87b6f?q=80&w=800&auto=format&fit=crop'},
+      { id: 'p3', title:'Summer Dress', price:69.00, img:'https://images.unsplash.com/photo-1520975698511-1f5b3d3b6d3f?q=80&w=800&auto=format&fit=crop'},
+      { id: 'p4', title:'Denim Jacket', price:120.00, img:'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=800&auto=format&fit=crop'},
+      { id: 'p5', title:'Chino Pants', price:79.00, img:'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=800&auto=format&fit=crop'},
+      { id: 'p6', title:'Hoodie', price:59.00, img:'https://images.unsplash.com/photo-1520975698511-1f5b3d3b6d3f?q=80&w=800&auto=format&fit=crop'}
+    ];
+
+    // state
+    let CART = JSON.parse(localStorage.getItem('demo_cart')||'[]');
+
+    const productGrid = document.getElementById('productGrid');
+    const cartCount = document.getElementById('cartCount');
+    const cartDrawer = document.getElementById('cartDrawer');
+    const cartItemsEl = document.getElementById('cartItems');
+    const subtotalEl = document.getElementById('subtotal');
+    const shownCount = document.getElementById('shownCount');
+    const searchInput = document.getElementById('searchInput');
+
+    // render products
+    function renderProducts(list){
+      productGrid.innerHTML = '';
+      list.forEach(p=>{
+        const card = document.createElement('div'); card.className='card';
+        card.innerHTML = `
+          <img src="${p.img}" alt="${p.title}">
+          <div class="meta">
+            <div class="title">${p.title}</div>
+            <div class="price">$${p.price.toFixed(2)}</div>
+            <div class="actions">
+              <button class="btn ghost" data-quick="${p.id}">Quick view</button>
+              <button class="btn primary" data-add="${p.id}">Add</button>
+            </div>
+          </div>`;
+        productGrid.appendChild(card);
+      });
+      shownCount.textContent = list.length;
+    }
+
+    function openModal(product){
+      document.getElementById('modalBg').classList.add('open');
+      document.getElementById('modalImgWrap').querySelector('img').src = product.img;
+      document.getElementById('modalTitle').textContent = product.title;
+      document.getElementById('modalPrice').textContent = '$' + product.price.toFixed(2);
+      document.getElementById('modalDesc').textContent = 'A comfy, well-made item. Replace this copy with real product details.';
+      document.getElementById('addToCartModal').dataset.pid = product.id;
+    }
+    function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+
+    function saveCart(){ localStorage.setItem('demo_cart', JSON.stringify(CART)); renderCart(); }
+    function renderCart(){
+      cartItemsEl.innerHTML = '';
+      if(CART.length===0) cartItemsEl.innerHTML = '<div style="color:var(--muted)">Your cart is empty.</div>';
+      CART.forEach(item=>{
+        const row = document.createElement('div'); row.className='cart-item';
+        row.innerHTML = `<img src="${item.img}" alt=""><div style="flex:1">
+          <div style="font-weight:600">${item.title}</div>
+          <div style="color:var(--muted)">$${item.price.toFixed(2)} x ${item.qty}</div>
+        </div>
+        <div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <button class="btn" data-inc="${item.id}">+</button>
+            <button class="btn" data-dec="${item.id}">-</button>
+          </div>
+        </div>`;
+        cartItemsEl.appendChild(row);
+      });
+      const subtotal = CART.reduce((s,i)=>s + i.price*i.qty, 0);
+      subtotalEl.textContent = '$' + subtotal.toFixed(2);
+      cartCount.textContent = CART.reduce((s,i)=>s+i.qty,0);
+    }
+
+    function addToCart(pid, qty=1){
+      const p = PRODUCTS.find(x=>x.id===pid); if(!p) return;
+      const existing = CART.find(i=>i.id===p.id);
+      if(existing) existing.qty += qty; else CART.push({...p, qty});
+      saveCart();
+    }
+
+    // init
+    renderProducts(PRODUCTS);
+    renderCart();
+
+    // events
+    document.body.addEventListener('click', (ev)=>{
+      const q = ev.target.closest('[data-add]');
+      if(q){ addToCart(q.dataset.add); return; }
+
+      const quick = ev.target.closest('[data-quick]');
+      if(quick){ const p = PRODUCTS.find(x=>x.id===quick.dataset.quick); openModal(p); return; }
+
+      const openCartBtn = ev.target.closest('#openCartBtn');
+      if(openCartBtn){ cartDrawer.classList.add('open'); return; }
+
+      const closeCartBtn = ev.target.closest('#closeCartBtn');
+      if(closeCartBtn){ cartDrawer.classList.remove('open'); return; }
+
+      const clearCartBtn = ev.target.closest('#clearCartBtn');
+      if(clearCartBtn){ CART=[]; saveCart(); return; }
+
+      const inc = ev.target.closest('[data-inc]');
+      if(inc){ const id=inc.dataset.inc; const it=CART.find(x=>x.id===id); if(it){it.qty++; saveCart();} return;}
+      const dec = ev.target.closest('[data-dec]');
+      if(dec){ const id=dec.dataset.dec; const it=CART.find(x=>x.id===id); if(it){it.qty--; if(it.qty<=0) CART = CART.filter(x=>x.id!==id); saveCart();} return;}
+    });
+
+    // modal actions
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    document.getElementById('modalBg').addEventListener('click', (e)=>{ if(e.target.id==='modalBg') closeModal(); });
+    document.getElementById('addToCartModal').addEventListener('click', (e)=>{
+      const pid = e.target.dataset.pid; const size = document.getElementById('sizeSelect').value;
+      addToCart(pid,1);
+      closeModal();
+      cartDrawer.classList.add('open');
+    });
+
+    // checkout (mock)
+    document.getElementById('checkoutBtn').addEventListener('click', ()=> {
+      if(CART.length===0){ alert('Your cart is empty'); return; }
+      alert('This demo does not process payments. Integrate Stripe/PayPal for real checkout.');
+    });
+
+    // search filtering
+    searchInput.addEventListener('input', ()=> {
+      const q = searchInput.value.trim().toLowerCase();
+      const filtered = PRODUCTS.filter(p => p.title.toLowerCase().includes(q));
+      renderProducts(filtered);
+    });
+
+    // expose for debugging
+    window.__CART = CART;
+  </script>
+</body>
+</html>

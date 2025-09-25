@@ -68,6 +68,11 @@ const PRODUCTS = [
   { id: 'p58', title: 'WF Face Cap ', price: 30000, img: 'image/photo_SF8.jpg', category: 'Scarf' },
   { id: 'p60', title: 'WF Head Warmer', price: 30000, img: 'image/photo_SF9.jpg', category: 'Scarf' },
 
+  { id: 'p61', title: 'WF Ladies Crop Top', price: 35000, img: 'image/photo_CP1.jpg', category: 'crop top' },
+  { id: 'p62', title: 'WF Ladies Crop Top', price: 35000, img: 'image/photo_CP2.jpg', category: 'crop top' },
+{ id: 'p63', title: 'WF Ladies Crop Top', price: 35000, img: 'image/photo_CP3.jpg', category: 'crop top' },
+{ id: 'p64', title: 'WF Ladies Crop Top', price: 35000, img: 'image/photo_CP4.jpg', category: 'crop top' },
+
 ];
 
 const CURRENCY = "₦";

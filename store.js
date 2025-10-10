@@ -103,7 +103,7 @@ const PRODUCTS = [
 ];
 
 const CURRENCY = "₦";
-let CART = JSON.parse(localStorage.getItem('demo_cart') || '[]');
+let CART = JSON.parse(localStorage.getItem('cart') || '[]');
 const grid = document.getElementById('productGrid');
 const cartItemsEl = document.getElementById('cartItems');
 const cartDrawer = document.getElementById('cartDrawer');
@@ -151,14 +151,26 @@ function renderCart() {
   const subtotal = CART.reduce((s, i) => s + i.price * i.qty, 0);
   subtotalEl.textContent = CURRENCY + subtotal.toFixed(2);
   cartCount.textContent = CART.reduce((s, i) => s + i.qty, 0);
-  localStorage.setItem('demo_cart', JSON.stringify(CART));
+  localStorage.setItem('cart', JSON.stringify(CART));
 }
 
 function addToCart(pid, qty = 1) {
+  // find the product by id
   const p = PRODUCTS.find(x => x.id === pid);
-  if (!p) return;
+  if (!p) return; // if not found, exit
+
+  // check if item already in cart
   const item = CART.find(i => i.id === pid);
-  if (item) item.qty += qty; else CART.push({ ...p, qty });
+  if (item) {
+    item.qty += qty; // increase quantity
+  } else {
+    CART.push({ ...p, qty }); // add new item
+  }
+
+  // ✅ Step 2: Save the updated cart to localStorage
+  localStorage.setItem('cart', JSON.stringify(CART));
+
+  // re-render the cart display (if your demo has a renderCart function)
   renderCart();
 }
 
@@ -189,11 +201,22 @@ document.body.addEventListener('click', e => {
 document.getElementById('openCartBtn').onclick = () => cartDrawer.classList.remove('translate-x-full');
 document.getElementById('closeCartBtn').onclick = () => cartDrawer.classList.add('translate-x-full');
 document.getElementById('clearCartBtn').onclick = () => { CART = []; renderCart(); };
-document.getElementById('checkoutBtn').onclick = () => alert("Take A Screenshot Of Your Cart And checkout On WhatsApp");
+//document.getElementById('checkoutBtn').onclick = () => alert("Take A Screenshot Of Your Cart And checkout On WhatsApp");
 document.getElementById('addToCartModal').onclick = (e) => { addToCart(e.target.dataset.pid, 1); closeModal(); cartDrawer.classList.remove('translate-x-full'); };
 document.getElementById('closeModal').onclick = closeModal;
 modalBg.addEventListener('click', e => { if (e.target.id === 'modalBg') closeModal(); });
 
+
+// Example cart array variable (already in your demo)
+
+// Checkout button action
+document.getElementById("checkoutBtn")?.addEventListener("click", () => {
+  // Save cart to localStorage before redirecting
+  localStorage.setItem("cart", JSON.stringify(CART));
+
+  // Go to checkout page
+  window.location.href = "checkout.html";
+});
 // search
 searchInput.addEventListener('input', () => {
   const q = searchInput.value.toLowerCase();

@@ -110,25 +110,22 @@
     </section>
 
   </main>
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const orderItems = document.getElementById("orderItems");
   const subtotalEl = document.getElementById("subtotal");
-    const placeOrderBtn = document.getElementById("placeOrderBtn");
-  // 🛒 Load the saved cart
+  const placeOrderBtn = document.getElementById("placeOrderBtn");
+
   const cart = JSON.parse(localStorage.getItem("cart")) || [];
-  console.log("Loaded cart:", cart);
 
   let subtotal = 0;
-
   if (cart.length === 0) {
-    orderItems.innerHTML = `<p class="text-gray-500">No items in your cart.</p>` ;
+    orderItems.innerHTML = `<p class="text-gray-500">No items in your cart.</p>`;
   } else {
-    // 🧾 Display each product in summary
     orderItems.innerHTML = cart.map(item => {
       const itemTotal = item.price * item.qty;
       subtotal += itemTotal;
-
       return `
         <div class="flex items-center justify-between border-b pb-2 mb-2">
           <div class="flex items-center gap-3">
@@ -143,66 +140,54 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
     }).join('');
   }
+  subtotalEl.textContent = "₦" + subtotal.toLocaleString();
 
-subtotalEl.textContent = "₦" + subtotal.toLocaleString();
-
-  // 🚚 Handle shipping option selection
+  // Shipping options
   const shippingOptions = document.querySelectorAll('input[name="shipping"]');
   let shippingCost = 0;
-
   function updateTotal() {
-    const selected = document.querySelector('input[name="shipping"]:checked');
-    shippingCost = selected ? parseInt(selected.value) : 0;
+    const sel = document.querySelector('input[name="shipping"]:checked');
+    shippingCost = sel ? parseInt(sel.value) : 0;
     const total = subtotal + shippingCost;
     subtotalEl.textContent = "₦" + total.toLocaleString();
   }
-
-  shippingOptions.forEach(option => {
-    option.addEventListener("change", updateTotal);
-  });
-
+  shippingOptions.forEach(opt => opt.addEventListener("change", updateTotal));
   updateTotal();
 
-  // ✅ Handle Place Order
   placeOrderBtn.addEventListener("click", () => {
-   const nameInput = document.getElementById("nameInput");
-const phoneInput = document.getElementById("phoneInput");
-const addressInput = document.getElementById("addressInput");
+    const nameInput = document.getElementById("nameInput");
+    const phoneInput = document.getElementById("phoneInput");
+    const addressInput = document.getElementById("addressInput");
 
-const fields = [nameInput, phoneInput, addressInput];
+    // validate
+    let valid = true;
+    [nameInput, phoneInput, addressInput].forEach(f => f.classList.remove("border-red-500"));
+    if (!nameInput.value.trim()) {
+      nameInput.classList.add("border-red-500");
+      valid = false;
+    }
+    if (!phoneInput.value.trim()) {
+      phoneInput.classList.add("border-red-500");
+      valid = false;
+    }
+    if (!addressInput.value.trim()) {
+      addressInput.classList.add("border-red-500");
+      valid = false;
+    }
+    if (!valid) return;
 
-    // Remove old red borders
-    fields.forEach(f => f.classList.remove("border-red-500"));
-
-    // Highlight empty fields
-    let allFilled = true;
-    fields.forEach(f => {
-      if (!f.value.trim()) {
-        f.classList.add("border-red-500");
-        allFilled = false;
-      }
-    });
-
-    if (!allFilled) return; // stop if
-
-      //
-
-    // Generate Order ID and Date
+    // build message
     const orderId = "WF" + Date.now().toString().slice(-6);
     const date = new Date().toLocaleDateString("en-NG", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
+      year: "numeric", month: "short", day: "numeric"
     });
+    const total = subtotal + shippingCost;
 
-    // Build cart list
-    const itemsList = cart.map(
-      item => `- ${item.title} × ${item.qty} — ₦${(item.price * item.qty).toLocaleString()}`
-    ).join("\n");
+    const itemsList = cart.map(item => `- ${item.title} × ${item.qty} — ₦${(item.price * item.qty).toLocaleString()}`)
+                          .join("\n");
 
-    // Create WhatsApp message
-    const message = 
-`🛍️ New Order from Wells Fashion
+    const message =
+`🛍 New Order from Wells Fashion
 🆔 Order ID: ${orderId}
 📅 Date: ${date}
 
@@ -212,40 +197,42 @@ const fields = [nameInput, phoneInput, addressInput];
 
 📦 Items:
 ${itemsList}
-🚚 Shipping: ₦${shippingCost.toLocaleString()}
-💰 Total: ₦${subtotal.toLocaleString()}`;
 
-    // ✅ Centered Alert
+🚚 Shipping: ₦${shippingCost.toLocaleString()}
+💰 Total: ₦${total.toLocaleString()}`;
+
+    const phoneNumber = "2347088614752"; // your WhatsApp number
+    const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+
+    // Try opening WhatsApp immediately
+    const newWindow = window.open(whatsappURL, "_blank");
+
+    // If it is blocked (null), fallback: redirect in current tab
+    if (!newWindow) {
+      window.location.href = whatsappURL;
+    }
+
+    // Show brief message overlay (optional)
     const alertBox = document.createElement("div");
     alertBox.innerHTML = `<div style="
-      position:fixed;
-      top:50%;left:50%;
+      position:fixed;top:50%;left:50%;
       transform:translate(-50%,-50%);
-      background:#000;
-      color:#fff;
-      padding:20px 30px;
-      border-radius:10px;
-      font-size:16px;
-      text-align:center;
-      z-index:9999;
-    ">✅ Order Sent! Redirecting to WhatsApp...</div>`;
+      background:#000;color:#fff;
+      padding:20px 30px;border-radius:10px;
+      font-size:16px;text-align:center;z-index:9999;
+    ">✅ Sending order to WhatsApp...</div>`;
     document.body.appendChild(alertBox);
 
-    // Replace with your WhatsApp business number (with country code, no +)
-    const phoneNumber = "2347088614752";
-    const encodedMsg = encodeURIComponent(message);
-    const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodedMsg}`;
-
+    // Cleanup after short delay
     setTimeout(() => {
       document.body.removeChild(alertBox);
-      window.open(whatsappURL, "_blank");
       localStorage.removeItem("cart");
+      // Optionally: redirect home
       window.location.href = "index.html";
-    }, 2000);
+    }, 1500);
   });
 });
 </script>
-
 
 </body>
 </html>

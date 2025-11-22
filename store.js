@@ -1,7 +1,7 @@
 // store.js
 // demo products
 
-const PRODUCTS = [
+const OLD_PRODUCTS = [
   { id: 'p1', title: 'WF NBA.YB Tee', price: 45000, img: 'image/photo_1.jpg', category: 'T-Shirt' },
   { id: 'p2', title: 'WF NBA.YB Tee', price: 45000, img: 'image/photo_2.jpg', category: 'T-Shirt' },
   { id: 'p3', title: 'WF Tee', price: 45000, img: 'image/photo_3.jpg', category: 'T-Shirt' },
@@ -112,6 +112,12 @@ const cartCount = document.getElementById('cartCount');
 const shownCount = document.getElementById('shownCount');
 const searchInput = document.getElementById('searchInput');
 
+let PRODUCTS = JSON.parse(localStorage.getItem("products"));
+if (!PRODUCTS || PRODUCTS.length === 0) {
+    PRODUCTS = OLD_PRODUCTS;
+    localStorage.setItem("products", JSON.stringify(OLD_PRODUCTS));
+}
+
 function renderProducts(list) {
   grid.innerHTML = '';
   list.forEach(p => {
@@ -123,8 +129,7 @@ function renderProducts(list) {
             <p class="text-teal-600 font-bold mt-1">${CURRENCY}${p.price.toFixed(2)}</p>
             <div class="mt-3 flex gap-2">
               <button data-quick="${p.id}" class="flex-1 bg-blue-300 py-2 rounded-md">Quick view</button>
-              <button data-add="${p.id}" class="flex-1 bg-blue-500 text-white py-2 rounded-md">Add</button>
-            </div>
+              <button data-add="${p.id}" class="flex-1 bg-blue-500 text-white py-2 rounded-md">Add</button>           </div>
           </div>
         </div>`;
   });
@@ -154,34 +159,64 @@ function renderCart() {
   localStorage.setItem('cart', JSON.stringify(CART));
 }
 
-function addToCart(pid, qty = 1) {
-  // find the product by id
-  const p = PRODUCTS.find(x => x.id === pid);
-  if (!p) return; // if not found, exit
+function addToCart(id, qty = 1) {
+    const lsProducts = JSON.parse(localStorage.getItem("products")) || [];
 
-  // check if item already in cart
-  const item = CART.find(i => i.id === pid);
-  if (item) {
-    item.qty += qty; // increase quantity
-  } else {
-    CART.push({ ...p, qty }); // add new item
-  }
+    // 1️⃣ Try find product in localStorage
+    let p = lsProducts.find(item => item.id == id);
 
-  // ✅ Step 2: Save the updated cart to localStorage
-  localStorage.setItem('cart', JSON.stringify(CART));
+    // 2️⃣ If not found, check old PRODUCTS
+    if (!p) {
+        p = PRODUCTS.find(item => item.id == id);
+    }
 
-  // re-render the cart display (if your demo has a renderCart function)
-  renderCart();
+    // 3️⃣ If still not found, stop
+    if (!p) {
+        console.error("Add to cart failed — Product not found:", id);
+        return;
+    }
+
+    // 4️⃣ Add or update cart
+    let item = CART.find(i => i.id == id);
+
+    if (item) {
+        item.qty += qty;
+    } else {
+        CART.push({ ...p, qty });
+    }
+
+    localStorage.setItem("cart", JSON.stringify(CART));
+    renderCart();
 }
 
 // modal
 const modalBg = document.getElementById('modalBg');
-function openModal(p) {
-  modalBg.classList.remove('hidden');
-  document.getElementById('modalImg').src = p.img;
-  document.getElementById('modalTitle').textContent = p.title;
-  document.getElementById('modalPrice').textContent = CURRENCY + p.price.toFixed(2);
-  document.getElementById('addToCartModal').dataset.pid = p.id;
+function openModal(id) {
+    const lsProducts = JSON.parse(localStorage.getItem("products")) || [];
+
+    // 1️⃣ Look in localStorage first
+    let p = lsProducts.find(item => item.id == id);
+
+    // 2️⃣ If not found, look in old hard-coded PRODUCTS
+    if (!p) {
+        p = PRODUCTS.find(item => item.id == id);
+    }
+
+    // 3️⃣ If still missing
+    if (!p) {
+        console.error("Product NOT found anywhere:", id);
+        return;
+    }
+
+    // 4️⃣ Fill modal
+    modalBg.classList.remove('hidden');
+    document.getElementById('modalImg').src = p.img;
+    document.getElementById('modalTitle').textContent = p.title;
+    document.getElementById('modalPrice').textContent = CURRENCY + p.price.toLocaleString();
+    document.getElementById('modalDesc').textContent = p.desc || "A comfy, high-quality item.";
+    
+    // Important: store the ID
+    document.getElementById('addToCartModal').dataset.pid = p.id;
 }
 function closeModal() { modalBg.classList.add('hidden'); }
 
@@ -193,7 +228,9 @@ renderCart();
 // events
 document.body.addEventListener('click', e => {
   if (e.target.dataset.add) { addToCart(e.target.dataset.add); }
-  if (e.target.dataset.quick) { const p = PRODUCTS.find(x => x.id === e.target.dataset.quick); openModal(p); }
+if (e.target.dataset.quick) {
+    openModal(e.target.dataset.quick);
+}
   if (e.target.dataset.inc) { const it = CART.find(x => x.id === e.target.dataset.inc); if (it) it.qty++; renderCart(); }
   if (e.target.dataset.dec) { const it = CART.find(x => x.id === e.target.dataset.dec); if (it) { it.qty--; if (it.qty <= 0) CART = CART.filter(x => x.id !== it.id); } renderCart(); }
 });
@@ -233,3 +270,6 @@ document.querySelectorAll('.category-btn').forEach(btn => {
     }
   });
 });
+if (!localStorage.getItem("products")) {
+  localStorage.setItem("products", JSON.stringify(OLD_PRODUCTS))
+}

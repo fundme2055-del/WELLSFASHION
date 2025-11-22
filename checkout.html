@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Checkout - Wells Fashion</title>
   <script src="./usingtw.js"></script>
+  <script src="https://js.paystack.co/v1/inline.js"></script>
 </head>
 <body class="bg-gray-50 font-sans">
 
@@ -65,7 +66,7 @@
 
         <div>
           <label class="block text-sm font-medium">Email *</label>
-          <input type="email"  class="w-full border rounded px-3 py-2" required>
+          <input type="email" id="emailInput" class="w-full border rounded px-3 py-2" required>
         </div>
       </form>
     </section>
@@ -98,6 +99,12 @@
         <p>KUDA MFB</p>
         <p>Account No: <span class="font-bold">2014887237</span></p>
       </div>
+      <div>
+      <button id="payBtn" class="w-full bg-black text-white py-3 rounded font-semibold hover:bg-gray-800 transition">
+        Make payment
+      </button>
+      </div>
+      
 
       <button id="placeOrderBtn" class="w-full bg-black text-white py-3 rounded font-semibold hover:bg-gray-800 transition">
         Place Order
@@ -158,6 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const nameInput = document.getElementById("nameInput");
     const phoneInput = document.getElementById("phoneInput");
     const addressInput = document.getElementById("addressInput");
+    const emailInput = document.getElementById("emailInput");
 
     // validate
     let valid = true;
@@ -231,6 +239,71 @@ ${itemsList}
       window.location.href = "index.html";
     }, 1500);
   });
+});
+</script>
+<script>
+document.getElementById('payBtn').addEventListener('click', function () {
+
+    // read amount from subtotal span
+    let rawAmount = document.getElementById('subtotal').innerText;
+
+    // remove ₦ and commas
+    rawAmount = rawAmount.replace('₦', '').replace(/,/g, '').trim();
+
+    let amount = parseInt(rawAmount);
+
+    // Get email
+    let email = document.getElementById('emailInput').value;
+
+    // Get other customer details
+    let name = document.getElementById("nameInput").value;
+    let phone = document.getElementById("phoneInput").value;
+    let address = document.getElementById("addressInput").value;
+
+    // Cart
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+    let handler = PaystackPop.setup({
+        key: 'pk_live_87df9dbf0873b1f9bed52dd85d4ee625ba293250',
+        email: email,
+        amount: amount * 100,
+        currency: 'NGN',
+        ref: 'REF-' + Date.now(),
+
+        callback: function(response) {
+            const paymentRef = response.reference;
+
+            // Create order object
+            const order = {
+                orderId: "WF" + Date.now().toString().slice(-6),
+                date: new Date().toLocaleDateString("en-NG", {
+                    year: "numeric", month: "short", day: "numeric"
+                }),
+                name,
+                phone,
+                email,
+                address,
+                cart,
+                total: amount,
+                paymentRef,
+                status: "Paid"
+            };
+
+            // Save order to localStorage
+            let orders = JSON.parse(localStorage.getItem("orders")) || [];
+            orders.push(order);
+            localStorage.setItem("orders", JSON.stringify(orders));
+
+            // Redirect to receipt page
+            window.location.href = `receipt.html?ref=${paymentRef}`;
+        },
+
+        onClose: function() {
+            alert('Payment window closed.');
+        }
+    });
+
+    handler.openIframe();
 });
 </script>
 
